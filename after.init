@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+# after.init: if executable, called by ufw-init. See 'man ufw-framework' for
+#             details. Note that output from these scripts is not seen via the
+#             the ufw command, but instead via ufw-init.
+#
+# Copyright 2013 Canonical Ltd.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License version 3,
+#    as published by the Free Software Foundation.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+set -e
+
+# specify the internet interface, used for inbound blocking
+inetif=ppp0
+
+# file containing blacklisted ip addresses, one per line
+# curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt' > /etc/ipsum.4.txt
+export scrublist=/etc/ipsum.4.txt
+
+IPSET_EXE="/sbin/ipset"
+ipsetname=ipsum
+
+case "$1" in
+start)
+    # create and populate an IP blacklist
+    $IPSET_EXE create  $ipsetname hash:net -exist
+    $IPSET_EXE flush   $ipsetname
+    
+    # Block inbound from blacklist
+    iptables -I INPUT -i $inetif -m set --match-set $ipsetname src -j DROP
+
+    # Log and drop forwarding to blacklist. Hits here may indicate compromised hosts.
+    iptables -N ufw-after-ipsum-fwddrop
+    iptables -A ufw-after-ipsum-fwddrop -j LOG --log-level 3 --log-prefix "[UFW IPSUM FORWARD DROP] " -m limit --limit 3/minute --limit-burst 10
+    iptables -A ufw-after-ipsum-fwddrop -j DROP
+    iptables -I FORWARD -m set --match-set $ipsetname dst -j ufw-after-ipsum-fwddrop
+
+    # add members to the ipset
+    # start this in a subshell and then disown job so we return quickly.
+    (
+    for ip in $(cat "$scrublist"); do 
+    		ipset add ipsum "$ip"
+    done
+    ) < /dev/null &> /dev/null & disown -h
+    ;;
+stop)
+    # delete resources created above
+    iptables -D INPUT -i $inetif -m set --match-set $ipsetname src -j DROP
+    iptables -D FORWARD -m set --match-set $ipsetname dst -j ufw-after-ipsum-fwddrop
+    iptables -F ufw-after-ipsum-fwddrop
+    iptables -X ufw-after-ipsum-fwddrop
+
+    $IPSET_EXE flush   $ipsetname
+    $IPSET_EXE destroy $ipsetname
+    ;;
+status)
+    # details of all ipsets
+    $IPSET_EXE list -t
+    ;;
+flush-all)
+    # flush sets created above
+    $IPSET_EXE flush  $ipsetname
+    ;;
+*)
+    echo "'$1' not supported"
+    echo "Usage: /etc/ufw/after.init {start|stop|flush-all|status}"
+    ;;
+esac

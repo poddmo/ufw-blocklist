@@ -1,0 +1,84 @@
+#!/bin/bash
+# This script will download the latest ipsum blacklist and add the addresses to an ipset
+# Uses memory instead of file system to reduce writes to sd card
+# todo: better validation of new list, eg is valid IP address
+
+ipsetname=ipsum
+ipsumurl='https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt'
+minlen=1000
+
+ipset_exe=/usr/sbin/ipset
+logger="/usr/bin/logger -t ipsum2ipset"
+
+## Check if ipsetname exists. exit if not - ie no set to update
+ipsetslist=$(ipset -n list)
+echo "$ipsetslist" | grep -q "$ipsetname"
+RET=$?
+if [ $RET -ne 0 ]; then
+	$logger -s "ipset named $ipsetname does not exist. is UFW started? exiting"
+	exit 1
+fi
+
+$logger "starting update of $ipsetname from $ipsumurl"
+
+
+## Download the latest list
+rawlist=$(curl -sS -f --compressed "$ipsumurl" 2>/dev/null)
+RET=$?
+if [ $RET -ne 0 ]; then
+	$logger -s "curl error code $RET for $ipsumurl"
+	exit 1
+fi
+
+## Read the list into an array
+declare -a scrublist
+readarray -t scrublist < <(echo "$rawlist")
+
+
+## Validate the list
+scrublistlen="${#scrublist[@]}"
+#echo "length of scrublist array: $scrublistlen"
+if [ $scrublistlen -lt $minlen ]; then
+	$logger -s "$scrublistlen less than $minlen IPs. something must be wrong with $ipsumurl"
+	exit 1
+fi
+
+
+## create a temporary ipset with new scrublist
+tmpsetname="$(mktemp -u | cut -f2 -d'.')-tmp"
+$ipset_exe -q create "$tmpsetname" hash:net
+RET=$?
+if [ $RET -ne 0 ]; then
+        $logger -s "error code $RET creating temporary ipset $tmpsetname"
+	$ipset_exe -q destroy "$tmpsetname"
+        exit 1
+fi
+
+## loop through each IP address in the array
+cnt=0
+for i in "${scrublist[@]}"
+do
+        # Add that IP to the ipset blacklist
+        #echo -e "Adding $i to ipset blacklist...\n"
+        $ipset_exe add "$tmpsetname" $i
+	cnt=$((cnt+1))
+done
+
+## ipset swap FROM-SETNAME TO-SETNAME
+##        Swap the content of two existing sets
+$ipset_exe swap "$tmpsetname" "$ipsetname"
+RET=$?
+if [ $RET -ne 0 ]; then
+        $logger -s "error code $RET ipset swapping $tmpsetname to $ipsetname"
+	$ipset_exe -q destroy "$tmpsetname"
+        exit 1
+fi
+
+$ipset_exe -q destroy "$tmpsetname"
+RET=$?
+if [ $RET -ne 0 ]; then
+        $logger -s "error code $RET destroying ipset $tmpsetname"
+        exit 1
+fi
+
+$logger "finished. $cnt of $scrublistlen added to ipset: $ipsetname"

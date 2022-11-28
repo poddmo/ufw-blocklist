@@ -11,16 +11,16 @@ ipset_exe=/usr/sbin/ipset
 logger="/usr/bin/logger -t ipsum2ipset"
 
 ## Check if ipsetname exists. exit if not - ie no set to update
-ipsetslist=$(ipset -n list)
-echo "$ipsetslist" | grep -q "$ipsetname"
+ipsetstatus=$("${ipset_exe}" -t list "${ipsetname}" 2>/dev/null )
 RET=$?
 if [ $RET -ne 0 ]; then
 	$logger -s "ipset named $ipsetname does not exist. is UFW started? exiting"
 	exit 1
 fi
 
-$logger "starting update of $ipsetname from $ipsumurl"
+ipsetcount=$(echo "$ipsetstatus" | grep '^Number of entries:' | cut -d' ' -f4)
 
+$logger "starting update of $ipsetname from $ipsumurl"
 
 ## Download the latest list
 rawlist=$(curl -sS -f --compressed "$ipsumurl" 2>/dev/null)
@@ -35,7 +35,7 @@ declare -a scrublist
 readarray -t scrublist < <(echo "$rawlist")
 
 
-## Validate the list
+## Validate the list length
 scrublistlen="${#scrublist[@]}"
 #echo "length of scrublist array: $scrublistlen"
 if [ $scrublistlen -lt $minlen ]; then
@@ -44,7 +44,7 @@ if [ $scrublistlen -lt $minlen ]; then
 fi
 
 
-## create a temporary ipset with new scrublist
+## create a temporary ipset
 tmpsetname="$(mktemp -u | cut -f2 -d'.')-tmp"
 $ipset_exe -q create "$tmpsetname" hash:net
 RET=$?
@@ -54,15 +54,23 @@ if [ $RET -ne 0 ]; then
         exit 1
 fi
 
-## loop through each IP address in the array
+## loop through each IP address in the scrublist array and add it to the temporary ipset
 cnt=0
 for i in "${scrublist[@]}"
 do
+	# Validate IP address is correct format
+	#echo -n "$i "
+	# if [[ ! "$i" =~ ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$ ]]; then
+	#if [[ "$i" =~ ^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+	#	echo 'valid ip address'
+	#fi
+
         # Add that IP to the ipset blacklist
         #echo -e "Adding $i to ipset blacklist...\n"
         $ipset_exe add "$tmpsetname" $i
 	cnt=$((cnt+1))
 done
+
 
 ## ipset swap FROM-SETNAME TO-SETNAME
 ##        Swap the content of two existing sets
@@ -81,4 +89,4 @@ if [ $RET -ne 0 ]; then
         exit 1
 fi
 
-$logger "finished. $cnt of $scrublistlen added to ipset: $ipsetname"
+$logger "finished updating $ipsetname. Old entry count: $ipsetcount New count: $cnt of $scrublistlen"

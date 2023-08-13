@@ -22,9 +22,11 @@ set -e
 
 # specify the internet interface, used for inbound blocking
 inetif=ppp0
+## TODO: test that interface exists
 
-# file containing blacklisted ip addresses, one per line
+# seed file containing blocklisted ip addresses, one per line
 # curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt' > /etc/ipsum.4.txt
+# ipset is updated daily by /etc/cron.daily/ipsum2ipset
 export scrublist=/etc/ipsum.4.txt
 
 IPSET_EXE="/sbin/ipset"
@@ -32,14 +34,20 @@ ipsetname=ipsum
 
 case "$1" in
 start)
-    # create and populate an IP blacklist
+    # check that blocklist seed file exists
+    if [ ! -f "$scrublist" ]; then
+    	echo "ufw after.init: $scrublist does not exist."
+	exit 1
+    fi
+
+    # create an empty ipset
     $IPSET_EXE create  $ipsetname hash:net -exist
     $IPSET_EXE flush   $ipsetname
     
-    # Block inbound from blacklist
+    # Block inbound from blocklist
     iptables -I INPUT -i $inetif -m set --match-set $ipsetname src -j DROP
 
-    # Log and drop forwarding to blacklist. Hits here may indicate compromised hosts.
+    # Log and drop forwarding to blocklist. Hits here may indicate compromised internal hosts
     iptables -N ufw-after-ipsum-fwddrop
     iptables -A ufw-after-ipsum-fwddrop -j LOG --log-level 3 --log-prefix "[UFW IPSUM FORWARD DROP] " -m limit --limit 3/minute --limit-burst 10
     iptables -A ufw-after-ipsum-fwddrop -j DROP
@@ -64,11 +72,11 @@ stop)
     $IPSET_EXE destroy $ipsetname
     ;;
 status)
-    # details of all ipsets
-    $IPSET_EXE list -t
+    # display details of the ipset
+    $IPSET_EXE list "$ipsetname" -t
     ;;
 flush-all)
-    # flush sets created above
+    # flush sets created above. Use /etc/cron.daily/ipsum2ipset to repopulate
     $IPSET_EXE flush  $ipsetname
     ;;
 *)

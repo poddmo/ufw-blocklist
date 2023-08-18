@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will download the latest ipsum blacklist and add the addresses to an ipset
+# This script will download the latest ipsum blocklist and add the addresses to an ipset
 # Uses memory instead of file system to reduce writes to sd card
 # todo: better validation of new list, eg is valid IP address
 
@@ -65,8 +65,8 @@ do
 	#	echo 'valid ip address'
 	#fi
 
-        # Add that IP to the ipset blacklist
-        #echo -e "Adding $i to ipset blacklist...\n"
+        # Add that IP to the ipset blocklist
+        #echo -e "Adding $i to ipset blocklist...\n"
         $ipset_exe add "$tmpsetname" $i
 	cnt=$((cnt+1))
 done

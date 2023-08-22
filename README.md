@@ -1,9 +1,9 @@
-# ufw-ipsum
+# ufw-blocklist
 Add an IP blocklist to ufw, the Ubuntu firewall
 * integrates into ufw for pure Ubuntu
 * uses linux ipsets for performance
 * the IP blocklist is refreshed daily
-* blocks inbound and forwarding packets
+* blocks inbound, outbound and forwarding packets
 * tested on:
   * Armbian 22.05.3 Focal (based on Ubuntu 20.04.4 LTS (Focal Fossa))
   * Ubuntu 22.04 LTS
@@ -56,4 +56,4 @@ Chain FORWARD (policy DROP 0 packets, 0 bytes)
     pkts      bytes target     prot opt in     out     source               destination
        0        0 ufw-after-ipsum-fwddrop  all  --  *      *       0.0.0.0/0            0.0.0.0/0            match-set ipsum dst
 ```
-Hits on the FORWARD drop rule may indicate an issue with an internal host. These hits are also logged to syslog.
+Hits on the OUTBOUND or FORWARD drop rule may indicate an issue with an internal host. These hits are also logged to syslog.

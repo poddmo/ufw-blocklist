@@ -18,11 +18,14 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+# ufw-blocklist edition: IP blocklist extension for Ubuntu ufw
+#  https://github.com/poddmo/ufw-blocklist
+#
+
 set -e
 
 # specify the internet interface, used for inbound blocking
 inetif=ppp0
-## TODO: test that interface exists
 
 # seed file containing blocklisted ip addresses, one per line
 # curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt' > /etc/ipsum.4.txt
@@ -44,8 +47,15 @@ start)
     $IPSET_EXE create  $ipsetname hash:net -exist
     $IPSET_EXE flush   $ipsetname
     
+    ## Insert firewall rules to take precedence
     # Block inbound from blocklist
     iptables -I INPUT -i $inetif -m set --match-set $ipsetname src -j DROP
+
+    # Log and drop outbound to blocklist. Hits here may indicate compromised localhost
+    iptables -N ufw-after-ipsum-outdrop
+    iptables -A ufw-after-ipsum-outdrop -j LOG --log-level 3 --log-prefix "[UFW IPSUM OUTBOUND DROP] " -m limit --limit 3/minute --limit-burst 10
+    iptables -A ufw-after-ipsum-outdrop -j DROP
+    iptables -I OUTPUT -m set --match-set $ipsetname dst -j ufw-after-ipsum-outdrop
 
     # Log and drop forwarding to blocklist. Hits here may indicate compromised internal hosts
     iptables -N ufw-after-ipsum-fwddrop
@@ -64,6 +74,9 @@ start)
 stop)
     # delete resources created above
     iptables -D INPUT -i $inetif -m set --match-set $ipsetname src -j DROP
+    iptables -D OUTPUT -m set --match-set $ipsetname dst -j ufw-after-ipsum-outdrop
+    iptables -F ufw-after-ipsum-outdrop
+    iptables -X ufw-after-ipsum-outdrop
     iptables -D FORWARD -m set --match-set $ipsetname dst -j ufw-after-ipsum-fwddrop
     iptables -F ufw-after-ipsum-fwddrop
     iptables -X ufw-after-ipsum-fwddrop
@@ -74,6 +87,8 @@ stop)
 status)
     # display details of the ipset
     $IPSET_EXE list "$ipsetname" -t
+    # here might be a good place to also show iptables hit/byte counts
+    ## something like: iptables | grep $ipsetname
     ;;
 flush-all)
     # flush sets created above. Use /etc/cron.daily/ipsum2ipset to repopulate

@@ -21,25 +21,21 @@
 # ufw-blocklist edition: IP blocklist extension for Ubuntu ufw
 #  https://github.com/poddmo/ufw-blocklist
 #
-
 set -e
 
-# specify the internet interface, used for inbound blocking
-inetif=ppp0
-
-# seed file containing blocklisted ip addresses, one per line
+# seed file containing the list of IP addresses to be blocked, one per line
 # curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt' > /etc/ipsum.4.txt
-# ipset is updated daily by /etc/cron.daily/ipsum2ipset
-export scrublist=/etc/ipsum.4.txt
+# ipset is updated daily by /etc/cron.daily/ufw-blocklist-ipsum
+export seedlist=/etc/ipsum.4.txt
+export ipsetname=ufw-blocklist-ipsum
 
-IPSET_EXE="/sbin/ipset"
-ipsetname=ipsum
+export IPSET_EXE="/sbin/ipset"
 
 case "$1" in
 start)
     # check that blocklist seed file exists
-    if [ ! -f "$scrublist" ]; then
-    	echo "ufw after.init: $scrublist does not exist."
+    if [ ! -f "$seedlist" ]; then
+    	echo "ufw after.init: $seedlist does not exist."
 	exit 1
     fi
 
@@ -48,38 +44,43 @@ start)
     $IPSET_EXE flush   $ipsetname
     
     ## Insert firewall rules to take precedence
-    # Block inbound from blocklist
-    iptables -I INPUT -i $inetif -m set --match-set $ipsetname src -j DROP
+    # Block inbound to localhost from blocklist
+    iptables -N ufw-blocklist-input
+    iptables -A ufw-blocklist-input -j DROP
+    iptables -I INPUT -m set --match-set $ipsetname src -j ufw-blocklist-input
 
     # Log and drop outbound to blocklist. Hits here may indicate compromised localhost
-    iptables -N ufw-after-ipsum-outdrop
-    iptables -A ufw-after-ipsum-outdrop -j LOG --log-level 3 --log-prefix "[UFW IPSUM OUTBOUND DROP] " -m limit --limit 3/minute --limit-burst 10
-    iptables -A ufw-after-ipsum-outdrop -j DROP
-    iptables -I OUTPUT -m set --match-set $ipsetname dst -j ufw-after-ipsum-outdrop
+    iptables -N ufw-blocklist-output
+    iptables -A ufw-blocklist-output -j LOG --log-level 3 --log-prefix "[UFW BLOCKLIST OUTPUT] " -m limit --limit 3/minute --limit-burst 10
+    iptables -A ufw-blocklist-output -j DROP
+    iptables -I OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output
 
     # Log and drop forwarding to blocklist. Hits here may indicate compromised internal hosts
-    iptables -N ufw-after-ipsum-fwddrop
-    iptables -A ufw-after-ipsum-fwddrop -j LOG --log-level 3 --log-prefix "[UFW IPSUM FORWARD DROP] " -m limit --limit 3/minute --limit-burst 10
-    iptables -A ufw-after-ipsum-fwddrop -j DROP
-    iptables -I FORWARD -m set --match-set $ipsetname dst -j ufw-after-ipsum-fwddrop
+    iptables -N ufw-blocklist-forward
+    iptables -A ufw-blocklist-forward -j LOG --log-level 3 --log-prefix "[UFW BLOCKLIST FORWARD] " -m limit --limit 3/minute --limit-burst 10
+    iptables -A ufw-blocklist-forward -j DROP
+    iptables -I FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward
 
     # add members to the ipset
-    # start this in a subshell and then disown job so we return quickly.
+    # start this in a subshell and then disown the job so we return quickly.
     (
-    for ip in $(cat "$scrublist"); do 
-    		ipset add ipsum "$ip"
-    done
+    cat "$seedlist" | while read ip
+        do
+    		$IPSET_EXE add "$ipsetname" "$ip"
+        done
     ) < /dev/null &> /dev/null & disown -h
     ;;
 stop)
     # delete resources created above
-    iptables -D INPUT -i $inetif -m set --match-set $ipsetname src -j DROP
-    iptables -D OUTPUT -m set --match-set $ipsetname dst -j ufw-after-ipsum-outdrop
-    iptables -F ufw-after-ipsum-outdrop
-    iptables -X ufw-after-ipsum-outdrop
-    iptables -D FORWARD -m set --match-set $ipsetname dst -j ufw-after-ipsum-fwddrop
-    iptables -F ufw-after-ipsum-fwddrop
-    iptables -X ufw-after-ipsum-fwddrop
+    iptables -D INPUT -m set --match-set $ipsetname src -j ufw-blocklist-input
+    iptables -F ufw-blocklist-input
+    iptables -X ufw-blocklist-input
+    iptables -D OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output
+    iptables -F ufw-blocklist-output
+    iptables -X ufw-blocklist-output
+    iptables -D FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward
+    iptables -F ufw-blocklist-forward
+    iptables -X ufw-blocklist-forward
 
     $IPSET_EXE flush   $ipsetname
     $IPSET_EXE destroy $ipsetname
@@ -87,12 +88,26 @@ stop)
 status)
     # display details of the ipset
     $IPSET_EXE list "$ipsetname" -t
-    # here might be a good place to also show iptables hit/byte counts
-    ## something like: iptables | grep $ipsetname
+    # show iptables hit/byte counts
+    iptables -L -nvx | grep "$ipsetname" | grep 'match-set'
+    # show the last 10 lines from the logs
+    journalctl | grep -i blocklist | tail
     ;;
 flush-all)
-    # flush sets created above. Use /etc/cron.daily/ipsum2ipset to repopulate
+    # flush sets created above. Use /etc/cron.daily/ufw-blocklist-ipsum to repopulate
     $IPSET_EXE flush  $ipsetname
+    # reset iptables accounting
+    ipz=$( iptables -L INPUT -nvx --line-numbers | grep ufw-blocklist-input | awk '{print $1}')
+    iptables -Z INPUT "$ipz"
+    iptables -Z ufw-blocklist-input
+
+    ipz=$( iptables -L OUTPUT -nvx --line-numbers | grep ufw-blocklist-output | awk '{print $1}')
+    iptables -Z OUTPUT "$ipz"
+    iptables -Z ufw-blocklist-output
+
+    ipz=$( iptables -L FORWARD -nvx --line-numbers | grep ufw-blocklist-forward | awk '{print $1}')
+    iptables -Z FORWARD "$ipz"
+    iptables -Z ufw-blocklist-forward
     ;;
 *)
     echo "'$1' not supported"

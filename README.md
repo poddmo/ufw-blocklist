@@ -38,7 +38,7 @@ The blocklist is automatically started and stopped by ufw. There are 2 additiona
 - The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters. Use /etc/cron.daily/ufw-blocklist-ipsum to download the latest list and repopulate the ipset.
 
 # Monitor
-Calling after.init with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules and log messages:
+Calling after.init with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and log messages:
 ```
 user@ubunturouter:~# sudo /etc/ufw/after.init status
 Name: ufw-blocklist-ipsum
@@ -70,7 +70,5 @@ These scripts have run flawlessly for 2 years. The next steps will take advantag
 - create an after.init.d directory, rename after.init to /etc/ufw/after.init.d/10-ufw-blocklist-ipsum
 - restore the original after.init, modify to test if after.init.d exists. If so, use run-parts(8)
 - create /etc/ufw/after.init.d/20-ufw-blocklist-bogans for blocking bogan IP addresses
-- create /etc/ufw/after.init.d/99-ufw-blocklist-whitelist for lockout prevention in case our management IP address makes its way into the blocklists. This script must run last due to the insert rules.
+- create /etc/ufw/after.init.d/99-ufw-whitelist-mgt for lockout prevention in case our management IP address makes its way into the blocklists. This script must run last due to the insert rules.
 - create pull request to ufw upstream for modified ufw-framework after.init
-
-

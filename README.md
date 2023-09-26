@@ -19,6 +19,7 @@ Install ufw-blocklist files:
 * /etc/ufw/after.init
 * /etc/cron.daily/ufw-blocklist-ipsum
 ```
+chmod 755 after.init ufw-blocklist-ipsum
 cp after.init /etc/ufw/after.init
 cp ufw-blocklist-ipsum /etc/cron.daily/ufw-blocklist-ipsum
 ```
@@ -35,7 +36,10 @@ ufw reload
 # Usage
 The blocklist is automatically started and stopped by ufw. There are 2 additional commands available: status and flush-all
 - The status option is described in the Monitor section below.
-- The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters. Use /etc/cron.daily/ufw-blocklist-ipsum to download the latest list and repopulate the ipset.
+- The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters. Use /etc/cron.daily/ufw-blocklist-ipsum to download the latest list and repopulate the ipset. Alternately, IP addresses can be manually added to the ipset like this:
+```
+ipset add ufw-blocklist-ipsum a.b.c.d
+```
 
 # Monitor
 Calling after.init with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and log messages:

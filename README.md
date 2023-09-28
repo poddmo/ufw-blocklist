@@ -36,12 +36,13 @@ ufw reload
 # Usage
 The blocklist is automatically started and stopped by ufw using the enable, disable and reload options. See the [Ubuntu UFW wiki page](https://help.ubuntu.com/community/UFW) for help getting started with ufw.
 
-There are 2 additional commands available: status and flush-all
-- The status option is described in the Monitor section below.
-- The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters. Use /etc/cron.daily/ufw-blocklist-ipsum to download the latest list and repopulate the ipset. Alternately, IP addresses can be manually added to the ipset like this:
+There are 2 additional after.init commands available: status and flush-all
+- The status option shows the count of entries in the blocklist, the hit count of packets that have been blocked and the last 10 log entries. The status option is further explained in the Monitor section below.
+- The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters. From this state you can manually add IP addresses to the list like this:
 ```
 ipset add ufw-blocklist-ipsum a.b.c.d
 ```
+or use /etc/cron.daily/ufw-blocklist-ipsum to download the latest list and repopulate the ipset.
 
 # Monitor
 Calling after.init with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and log messages:
@@ -68,8 +69,8 @@ Sep 25 21:19:51 ubunturouter kernel: [UFW BLOCKLIST FORWARD] IN=eth1 OUT=ppp0 MA
 Sep 26 06:25:02 ubunturouter ufw-blocklist-ipsum[661335]: starting update of ufw-blocklist-ipsum with 13008 entries from https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt
 Sep 26 06:26:06 ubunturouter ufw-blocklist-ipsum[674158]: finished updating ufw-blocklist-ipsum. Old entry count: 13008 New count: 12789 of 12789
 ```
-- Hits on the OUTBOUND or FORWARD drop rule may indicate an issue with an internal host and are logged. In the example status shown above, the hits on the FORWARD rule are related to an internal torrent client.
-- INPUT hits are not logged. The status output above shows **76998 dropped INPUT packets** after the system has been up 9 days, 22:45 hours.
+- Hits on the OUTPUT or FORWARD drop rules may indicate an issue with an internal host and are logged. In the example status shown above, the hits on the FORWARD rule are related to an internal torrent client.
+- INPUT hits are not logged. The status output above shows **76998 dropped INPUT packets** after the system has been up 9 days, 22:45 hours. This blocklist is very successful at dropping a lot of uninvited traffic.
 
 # Todo
 These scripts have run flawlessly for 2 years. The next steps will take advantage of this extended ufw-framework to block bogans and create a whitelist - generalising the blocklist case to arbitrary ipsets

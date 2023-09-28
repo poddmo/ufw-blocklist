@@ -30,12 +30,11 @@ curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/maste
 ```
 Restart ufw
 ```
-ufw enable
 ufw reload
 ```
 
 # Usage
-The blocklist is automatically started and stopped by ufw using the enable, disable and reload options.
+The blocklist is automatically started and stopped by ufw using the enable, disable and reload options. See the [Ubuntu UFW wiki page](https://help.ubuntu.com/community/UFW) for help getting started with ufw.
 
 There are 2 additional commands available: status and flush-all
 - The status option is described in the Monitor section below.

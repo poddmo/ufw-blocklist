@@ -1,13 +1,13 @@
 # ufw-blocklist
 Add IP blocklists to ufw, the Ubuntu firewall
 * integrates into ufw for pure Ubuntu
+* blocks inbound, outbound and forwarding packets
 * uses Linux ipsets for performance
 * the blocklist is refreshed daily
-* blocks inbound, outbound and forwarding packets
+* IP blocklist sourced from [IPsum](https://github.com/stamparm/ipsum)
 * tested on:
   * Armbian 22.05.3 Focal (based on Ubuntu 20.04.4 LTS (Focal Fossa))
   * Ubuntu 22.04 LTS
-* IP blocklist sourced from [IPsum](https://github.com/stamparm/ipsum)
 
 # Install
 Install ipset package
@@ -16,9 +16,9 @@ sudo apt install ipset
 ```
 
 Install ufw-blocklist files:
-* /etc/ufw/after.init
-* /etc/cron.daily/ufw-blocklist-ipsum
 ```
+cp /etc/ufw/after.init /etc/ufw/after.init.orig
+
 chmod 755 after.init ufw-blocklist-ipsum
 cp after.init /etc/ufw/after.init
 cp ufw-blocklist-ipsum /etc/cron.daily/ufw-blocklist-ipsum
@@ -30,11 +30,14 @@ curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/maste
 ```
 Restart ufw
 ```
+ufw enable
 ufw reload
 ```
 
 # Usage
-The blocklist is automatically started and stopped by ufw. There are 2 additional commands available: status and flush-all
+The blocklist is automatically started and stopped by ufw using the enable, disable and reload options.
+
+There are 2 additional commands available: status and flush-all
 - The status option is described in the Monitor section below.
 - The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters. Use /etc/cron.daily/ufw-blocklist-ipsum to download the latest list and repopulate the ipset. Alternately, IP addresses can be manually added to the ipset like this:
 ```

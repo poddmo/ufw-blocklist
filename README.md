@@ -1,36 +1,45 @@
 # ufw-blocklist
-Add IP blocklists to ufw, the Ubuntu firewall
+Add an IP blocklist to ufw, the uncomplicated Ubuntu firewall
 * integrates into ufw for pure Ubuntu
 * blocks inbound, outbound and forwarding packets
-* uses Linux ipsets for performance
-* the blocklist is refreshed daily
-* IP blocklist sourced from [IPsum](https://github.com/stamparm/ipsum)
-* tested on:
+* uses [Linux ipsets](https://ipset.netfilter.org/) for kernel-grade performance
+* the IP blocklist is refreshed daily
+* the IP blocklist is sourced from [IPsum](https://github.com/stamparm/ipsum)
+* ufw-blocklist is tested on:
   * Armbian 22.05.3 Focal (based on Ubuntu 20.04.4 LTS (Focal Fossa))
-  * Ubuntu 22.04 LTS
+  * Ubuntu 22.04 LTS (Jammy Jellyfish)
 
-# Install
-Install ipset package
+**This blocklist is _very_ successful at dropping a lot of uninvited traffic.** It has been intentionally designed to be very light on resource requirements and zero maintenance as the initial target platform was a single-board computer operating as a router. After the initial installation, there are no further writes to the storage system to preserve solid state storage. I would highly recommend it for any Ubuntu host that has a public IP address or is otherwise exposed directly to the internet, for example by port forwarding.
+
+# Installation
+Install the ipset package
 ```
 sudo apt install ipset
 ```
 
-Install ufw-blocklist files:
+Backup the original ufw after.init example script:
 ```
-cp /etc/ufw/after.init /etc/ufw/after.init.orig
-
-chmod 755 after.init ufw-blocklist-ipsum
-cp after.init /etc/ufw/after.init
-cp ufw-blocklist-ipsum /etc/cron.daily/ufw-blocklist-ipsum
+sudo cp /etc/ufw/after.init /etc/ufw/after.init.orig
 ```
 
-Download an initial IP blocklist:
+Install the ufw-blocklist files
 ```
-curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt' > /etc/ipsum.4.txt
+git clone https://github.com/poddmo/ufw-blocklist.git
+cd ufw-blocklist
+chmod 750 after.init ufw-blocklist-ipsum
+sudo cp after.init /etc/ufw/after.init
+sudo cp ufw-blocklist-ipsum /etc/cron.daily/ufw-blocklist-ipsum
+```
+
+Download an initial IP blocklist from [IPsum](https://github.com/stamparm/ipsum)
+```
+curl -sS -f --compressed -o ipsum.4.txt 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt'
+chmod 640 ipsum.4.txt
+sudo cp ipsum.4.txt /etc/ipsum.4.txt
 ```
 Restart ufw
 ```
-ufw reload
+sudo ufw reload
 ```
 
 # Usage
@@ -42,7 +51,7 @@ There are 2 additional after.init commands available: status and flush-all
 ```
 ipset add ufw-blocklist-ipsum a.b.c.d
 ```
-or use /etc/cron.daily/ufw-blocklist-ipsum to download the latest list and repopulate the ipset.
+or use `/etc/cron.daily/ufw-blocklist-ipsum` to download the latest list and repopulate the ipset.
 
 # Monitor
 Calling after.init with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and log messages:
@@ -70,7 +79,7 @@ Sep 26 06:25:02 ubunturouter ufw-blocklist-ipsum[661335]: starting update of ufw
 Sep 26 06:26:06 ubunturouter ufw-blocklist-ipsum[674158]: finished updating ufw-blocklist-ipsum. Old entry count: 13008 New count: 12789 of 12789
 ```
 - Hits on the OUTPUT or FORWARD drop rules may indicate an issue with an internal host and are logged. In the example status shown above, the hits on the FORWARD rule are related to an internal torrent client.
-- INPUT hits are not logged. The status output above shows **76998 dropped INPUT packets** after the system has been up 9 days, 22:45 hours. This blocklist is very successful at dropping a lot of uninvited traffic.
+- INPUT hits are not logged. The status output above shows **76998 dropped INPUT packets** after the system has been up 9 days, 22:45 hours.
 
 # Todo
 These scripts have run flawlessly for 2 years. The next steps will take advantage of this extended ufw-framework to block bogans and create a whitelist - generalising the blocklist case to arbitrary ipsets

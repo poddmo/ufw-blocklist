@@ -9,7 +9,7 @@ Add an IP blocklist to ufw, the uncomplicated Ubuntu firewall
   * Armbian 22.05.3 Focal (based on Ubuntu 20.04.4 LTS (Focal Fossa))
   * Ubuntu 22.04 LTS (Jammy Jellyfish)
 
-**This blocklist is _very_ successful at dropping a lot of uninvited traffic.** It has been intentionally designed to be very light on resource requirements and zero maintenance as the initial target platform was a single-board computer operating as a router. After the initial installation, there are no further writes to the storage system to preserve solid state storage. I would highly recommend it for any Ubuntu host that has a public IP address or is otherwise exposed directly to the internet, for example by port forwarding.
+**This blocklist is _very_ successful at dropping a lot of uninvited traffic.** It has been intentionally designed to be very light on resource requirements and zero maintenance as the initial target platform was a single-board computer operating as a home internet gateway. After the initial installation, there are no further writes to the storage system to preserve solid state storage. I would now highly recommend it for any Ubuntu host that has a public IP address or is otherwise exposed directly to the internet, for example, by port forwarding.
 
 # Installation
 Install the ipset package
@@ -17,7 +17,7 @@ Install the ipset package
 sudo apt install ipset
 ```
 
-Backup the original ufw after.init example script:
+Backup the original ufw `after.init` example script
 ```
 sudo cp /etc/ufw/after.init /etc/ufw/after.init.orig
 ```
@@ -45,16 +45,20 @@ sudo ufw reload
 # Usage
 The blocklist is automatically started and stopped by ufw using the enable, disable and reload options. See the [Ubuntu UFW wiki page](https://help.ubuntu.com/community/UFW) for help getting started with ufw.
 
-There are 2 additional after.init commands available: status and flush-all
-- The status option shows the count of entries in the blocklist, the hit count of packets that have been blocked and the last 10 log entries. The status option is further explained in the Monitor section below.
-- The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters. From this state you can manually add IP addresses to the list like this:
+There are 2 additional `after.init` commands available: status and flush-all
+- The status option shows the count of entries in the blocklist, the hit count of packets that have been blocked and the last 10 log entries. The status option is further explained in the [Status](#status) section below.
+- The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters:
 ```
-ipset add ufw-blocklist-ipsum a.b.c.d
+sudo /etc/ufw/after.init flush-all
 ```
-or use `/etc/cron.daily/ufw-blocklist-ipsum` to download the latest list and repopulate the ipset.
+From this state you can manually add IP addresses to the list like this:
+```
+sudo ipset add ufw-blocklist-ipsum a.b.c.d
+```
+or use `/etc/cron.daily/ufw-blocklist-ipsum` to download the latest list and fully restore the blocklist.
 
-# Monitor
-Calling after.init with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and log messages:
+# Status
+Calling `after.init` with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and log messages:
 ```
 user@ubunturouter:~# sudo /etc/ufw/after.init status
 Name: ufw-blocklist-ipsum

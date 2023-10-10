@@ -86,9 +86,10 @@ Sep 26 06:26:06 ubunturouter ufw-blocklist-ipsum[674158]: finished updating ufw-
 - INPUT hits are not logged. The status output above shows **76998 dropped INPUT packets** after the system has been up 9 days, 22:45 hours.
 
 # Todo
-These scripts have run flawlessly for 2 years. The next steps will take advantage of this extended ufw-framework to block bogans and create a whitelist - generalising the blocklist case to arbitrary ipsets
+These scripts have run flawlessly for 2 years. The next steps will take advantage of this extended ufw-framework, for example, to block bogans and create a whitelist - generalising the blocklist case to arbitrary ipsets
 - create an after.init.d directory, rename after.init to /etc/ufw/after.init.d/10-ufw-blocklist-ipsum
 - restore the original after.init, modify to test if after.init.d exists. If so, use run-parts(8)
-- create /etc/ufw/after.init.d/20-ufw-blocklist-bogans for blocking bogan IP addresses
+- create /etc/ufw/after.init.d/40-ufw-blocklist-geo for blocking geographic subnets
+- create /etc/ufw/after.init.d/50-ufw-blocklist-bogans for blocking bogan IP addresses
 - create /etc/ufw/after.init.d/99-ufw-whitelist-mgt for lockout prevention in case our management IP address makes its way into the blocklists. This script must run last due to the insert rules.
 - create pull request to ufw upstream for modified ufw-framework after.init

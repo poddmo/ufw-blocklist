@@ -1,0 +1,64 @@
+#!/bin/sh
+#
+# after.init: if executable, called by ufw-init. See 'man ufw-framework' for
+#             details. Note that output from these scripts is not seen via the
+#             the ufw command, but instead via ufw-init.
+#
+# Copyright 2013 Canonical Ltd.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License version 3,
+#    as published by the Free Software Foundation.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# ufw-blocklist dynamic edition: IP blocklist extension for Ubuntu ufw
+#  https://github.com/poddmo/ufw-blocklist
+#
+# Install this script executable as /etc/ufw/after.init
+# Install user scripts to be run after ufw has initialised into /etc/ufw/after.init.d/
+# ** Scripts will run with ufw privilege, ie root **
+# Script names must match the filename format: numbernumber-*.ufw
+# Order of execution is critical. Lower (00) numbered scripts will execute first
+# Higher numbered scripts have higher precedence
+# Example filenames: 10-ipblocklist-ipsum.ufw, 20-subnetblocklist.ufw
+#
+set -e
+
+afterinitdir='/etc/ufw/after.init.d'
+if [ ! -d "$afterinitdir" ];
+then 
+	echo "$afterinitdir does not exist. nothing to do"
+	exit 0
+fi
+
+runpartsfunc ()
+{
+	run-parts --report --regex='^[0-9]{2}-.*.ufw$' --arg="$1" "${afterinitdir}"
+	exit $?
+}
+
+case "$1" in
+start)
+    runpartsfunc start
+    ;;
+stop)
+    runpartsfunc stop
+    ;;
+status)
+    runpartsfunc status
+    ;;
+flush-all)
+    runpartsfunc flush-all
+    ;;
+*)
+    echo "'$1' not supported"
+    echo "Usage: after.init {start|stop|flush-all|status}"
+    ;;
+esac

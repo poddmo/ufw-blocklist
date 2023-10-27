@@ -63,7 +63,7 @@ start)
         iptables -X ufw-blocklist-input
     fi
     iptables -N ufw-blocklist-input
-    iptables -A ufw-blocklist-input -j DROP
+    iptables -A ufw-blocklist-input -j DROP -m comment --comment "ufw-blocklist-input"
     iptables -I INPUT -m set --match-set $ipsetname src -j ufw-blocklist-input
 
     # Log and drop outbound to blocklist. Hits here may indicate compromised localhost
@@ -74,7 +74,7 @@ start)
     fi
     iptables -N ufw-blocklist-output
     iptables -A ufw-blocklist-output -j LOG --log-level 3 --log-prefix "[UFW BLOCKLIST OUTPUT] " -m limit --limit 3/minute --limit-burst 10
-    iptables -A ufw-blocklist-output -j DROP
+    iptables -A ufw-blocklist-output -j DROP -m comment --comment "ufw-blocklist-output"
     iptables -I OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output
 
     # Log and drop forwarding to blocklist. Hits here may indicate compromised internal hosts
@@ -85,7 +85,7 @@ start)
     fi
     iptables -N ufw-blocklist-forward
     iptables -A ufw-blocklist-forward -j LOG --log-level 3 --log-prefix "[UFW BLOCKLIST FORWARD] " -m limit --limit 3/minute --limit-burst 10
-    iptables -A ufw-blocklist-forward -j DROP
+    iptables -A ufw-blocklist-forward -j DROP -m comment --comment "ufw-blocklist-forward"
     iptables -I FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward
 
     # add members to the ipset

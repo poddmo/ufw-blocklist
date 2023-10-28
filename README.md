@@ -92,5 +92,6 @@ These scripts have run flawlessly for 2 years. The next steps will take advantag
 - create /etc/ufw/after.init.d/40-ufw-blocklist-geo for blocking geographic subnets. Geo-based subnets can be found at: https://www.ip2location.com/free/visitor-blocker
   - geo-based blocks could be useful for blocking botnets or "citizen activists"
 - create /etc/ufw/after.init.d/50-ufw-blocklist-bogans for blocking bogan IP addresses. FireHOL includes fullbogons: https://iplists.firehol.org/
+  - so does team Cymru. See fullbogons at: https://www.team-cymru.com/bogon-reference-http
 - create /etc/ufw/after.init.d/99-ufw-whitelist-mgt for lockout prevention in case our management IP address makes its way into the blocklists. This script must run last due to the insert rules.
 - create pull request to ufw upstream for modified ufw-framework after.init

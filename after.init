@@ -31,6 +31,18 @@ export ipsetname=ufw-blocklist-ipsum
 
 export IPSET_EXE="/sbin/ipset"
 
+# Function to check if a chain exists (chain_exists ufw_blocklist_input && action if true || action if false)
+chain_exists()
+{   
+    [ $# -lt 1 -o $# -gt 2 ] && { 
+        echo "Usage: chain_exists <chain_name> [table]" >&2
+        return 1
+    }
+    local chain_name="$1" ; shift
+    [ $# -eq 1 ] && local table="--table $1"
+    iptables $table -n --list "$chain_name" >/dev/null 2>&1
+}
+
 case "$1" in
 start)
     # check that blocklist seed file exists
@@ -43,22 +55,37 @@ start)
     $IPSET_EXE create  $ipsetname hash:net -exist
     $IPSET_EXE flush   $ipsetname
     
-    ## Insert firewall rules to take precedence
+    ## Insert firewall rules to take precedence, removing them and adding them back if they already existed
     # Block inbound to localhost from blocklist
+    if chain_exists ufw-blocklist-input; then
+        iptables -D INPUT -m set --match-set $ipsetname src -j ufw-blocklist-input || true
+        iptables -F ufw-blocklist-input
+        iptables -X ufw-blocklist-input
+    fi
     iptables -N ufw-blocklist-input
-    iptables -A ufw-blocklist-input -j DROP
+    iptables -A ufw-blocklist-input -j DROP -m comment --comment "ufw-blocklist-input"
     iptables -I INPUT -m set --match-set $ipsetname src -j ufw-blocklist-input
 
     # Log and drop outbound to blocklist. Hits here may indicate compromised localhost
+    if chain_exists ufw-blocklist-output; then
+        iptables -D OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output || true
+        iptables -F ufw-blocklist-output
+        iptables -X ufw-blocklist-output
+    fi
     iptables -N ufw-blocklist-output
     iptables -A ufw-blocklist-output -j LOG --log-level 3 --log-prefix "[UFW BLOCKLIST OUTPUT] " -m limit --limit 3/minute --limit-burst 10
-    iptables -A ufw-blocklist-output -j DROP
+    iptables -A ufw-blocklist-output -j DROP -m comment --comment "ufw-blocklist-output"
     iptables -I OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output
 
     # Log and drop forwarding to blocklist. Hits here may indicate compromised internal hosts
+    if chain_exists ufw-blocklist-forward; then
+        iptables -D FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward || true
+        iptables -F ufw-blocklist-forward
+        iptables -X ufw-blocklist-forward
+    fi
     iptables -N ufw-blocklist-forward
     iptables -A ufw-blocklist-forward -j LOG --log-level 3 --log-prefix "[UFW BLOCKLIST FORWARD] " -m limit --limit 3/minute --limit-burst 10
-    iptables -A ufw-blocklist-forward -j DROP
+    iptables -A ufw-blocklist-forward -j DROP -m comment --comment "ufw-blocklist-forward"
     iptables -I FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward
 
     # add members to the ipset
@@ -72,15 +99,21 @@ start)
     ;;
 stop)
     # delete resources created above
-    iptables -D INPUT -m set --match-set $ipsetname src -j ufw-blocklist-input
-    iptables -F ufw-blocklist-input
-    iptables -X ufw-blocklist-input
-    iptables -D OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output
-    iptables -F ufw-blocklist-output
-    iptables -X ufw-blocklist-output
-    iptables -D FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward
-    iptables -F ufw-blocklist-forward
-    iptables -X ufw-blocklist-forward
+    if chain_exists ufw-blocklist-input; then
+        iptables -D INPUT -m set --match-set $ipsetname src -j ufw-blocklist-input || true
+        iptables -F ufw-blocklist-input
+        iptables -X ufw-blocklist-input
+    fi
+    if chain_exists ufw-blocklist-input; then
+        iptables -D OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output || true
+        iptables -F ufw-blocklist-output
+        iptables -X ufw-blocklist-output
+    fi
+    if chain_exists ufw-blocklist-forward; then
+        iptables -D FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward || true
+        iptables -F ufw-blocklist-forward
+        iptables -X ufw-blocklist-forward
+    fi
 
     $IPSET_EXE flush   $ipsetname
     $IPSET_EXE destroy $ipsetname
@@ -88,8 +121,16 @@ stop)
 status)
     # display details of the ipset
     $IPSET_EXE list "$ipsetname" -t
+    printf "\n"
+
     # show iptables hit/byte counts
-    iptables -L -nvx | grep "$ipsetname" | grep 'match-set'
+    iptables -v -n -L ufw-blocklist-input | grep -E "Chain|DROP|pkts"
+    printf "\n"
+    iptables -v -n -L ufw-blocklist-forward | grep -E "Chain|DROP|pkts"
+    printf "\n"
+    iptables -v -n -L ufw-blocklist-output | grep -E "Chain|DROP|pkts"
+    printf "\n"
+
     # show the last 10 lines from the logs
     journalctl | grep -i blocklist | tail
     ;;

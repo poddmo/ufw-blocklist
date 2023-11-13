@@ -23,13 +23,20 @@
 #
 set -e
 
+export ipsetname=ufw-blocklist-ipsum
+
 # seed file containing the list of IP addresses to be blocked, one per line
 # curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt' > /etc/ipsum.4.txt
 # ipset is updated daily by /etc/cron.daily/ufw-blocklist-ipsum
 export seedlist=/etc/ipsum.4.txt
-export ipsetname=ufw-blocklist-ipsum
 
 export IPSET_EXE="/sbin/ipset"
+# check ipset exists and is executable
+[ -x "$IPSET_EXE" ] || {
+    echo "$IPSET_EXE is not executable"
+    exit 1
+    }
+
 
 # Function to check if a chain exists (chain_exists ufw_blocklist_input && action if true || action if false)
 chain_exists()
@@ -41,6 +48,16 @@ chain_exists()
     local chain_name="$1" ; shift
     [ $# -eq 1 ] && local table="--table $1"
     iptables $table -n --list "$chain_name" >/dev/null 2>&1
+}
+
+set_exists()
+{   
+    [ $# -ne 1 ] && { 
+        echo "Usage: set_exists <set_name>" >&2
+        return 1
+    }
+    local set_name="$1"
+    ipset list "$set_name" -name >/dev/null 2>&1
 }
 
 case "$1" in
@@ -114,9 +131,10 @@ stop)
         iptables -F ufw-blocklist-forward
         iptables -X ufw-blocklist-forward
     fi
-
-    $IPSET_EXE flush   $ipsetname
-    $IPSET_EXE destroy $ipsetname
+    if set_exists $ipsetname; then
+	$IPSET_EXE flush   $ipsetname
+	$IPSET_EXE destroy $ipsetname
+    fi
     ;;
 status)
     # display details of the ipset

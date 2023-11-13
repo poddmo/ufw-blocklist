@@ -51,8 +51,8 @@ sudo ipset list ufw-blocklist-ipsum -terse | grep 'Number of entries'
 The blocklist is automatically started and stopped by ufw using the enable, disable and reload options. See the [Ubuntu UFW wiki page](https://help.ubuntu.com/community/UFW) for help getting started with ufw.
 
 There are 2 additional `after.init` commands available: status and flush-all
-- The status option shows the count of entries in the blocklist, the hit count of packets that have been blocked and the last 10 log entries. The status option is further explained in the [Status](#status) section below.
-- The flush-all option deletes all entries in the blocklist and zeros the iptables hit counters:
+- The **status** option shows the count of entries in the blocklist, the hit count of packets that have been blocked and the last 10 log entries. The status option is further explained in the [Status](#status) section below.
+- The **flush-all** option deletes all entries in the blocklist and zeros the iptables hit counters:
 ```
 sudo /etc/ufw/after.init flush-all
 ```
@@ -60,7 +60,7 @@ From this state you can manually add IP addresses to the list like this:
 ```
 sudo ipset add ufw-blocklist-ipsum a.b.c.d
 ```
-or use `/etc/cron.daily/ufw-blocklist-ipsum` to download the latest list and fully restore the blocklist.
+This is useful for testing. Use `/etc/cron.daily/ufw-blocklist-ipsum` to download the latest list and fully restore the blocklist.
 
 # Status
 Calling `after.init` with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and the last 10 log messages. Here is a sample output:

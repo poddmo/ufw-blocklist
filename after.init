@@ -50,6 +50,7 @@ chain_exists()
     iptables $table -n --list "$chain_name" >/dev/null 2>&1
 }
 
+# Function to check if an set exists (set_exists setname && action if true || action if false)
 set_exists()
 {   
     [ $# -ne 1 ] && { 

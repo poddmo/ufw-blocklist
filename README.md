@@ -26,9 +26,10 @@ Install the ufw-blocklist files
 ```
 git clone https://github.com/poddmo/ufw-blocklist.git
 cd ufw-blocklist
-chmod 750 after.init ufw-blocklist-ipsum
 sudo cp after.init /etc/ufw/after.init
 sudo cp ufw-blocklist-ipsum /etc/cron.daily/ufw-blocklist-ipsum
+sudo chown root.root /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
+sudo chmod 750 /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
 ```
 
 Download an initial IP blocklist from [IPsum](https://github.com/stamparm/ipsum)
@@ -40,6 +41,10 @@ sudo cp ipsum.4.txt /etc/ipsum.4.txt
 Start ufw-blocklist
 ```
 sudo /etc/ufw/after.init start
+```
+It takes time to load the blocklist entries into the ipset. Watch the progress with 
+```
+sudo ipset list ufw-blocklist-ipsum -terse | grep 'Number of entries'
 ```
 
 # Usage
@@ -58,7 +63,7 @@ sudo ipset add ufw-blocklist-ipsum a.b.c.d
 or use `/etc/cron.daily/ufw-blocklist-ipsum` to download the latest list and fully restore the blocklist.
 
 # Status
-Calling `after.init` with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and log messages:
+Calling `after.init` with the status option displays the current count of the entries in the blocklist, the hit counts on the firewall rules (column 1 is hits, column 2 is bytes) and the last 10 log messages. Here is a sample output:
 ```
 user@ubunturouter:~# sudo /etc/ufw/after.init status
 Name: ufw-blocklist-ipsum
@@ -86,11 +91,12 @@ Sep 26 06:26:06 ubunturouter ufw-blocklist-ipsum[674158]: finished updating ufw-
 - INPUT hits are not logged. The status output above shows **76998 dropped INPUT packets** after the system has been up 9 days, 22:45 hours.
 
 # Todo
-These scripts have run flawlessly for 2 years. The next steps will take advantage of this extended ufw-framework, for example, to block bogans and create a whitelist - generalising the blocklist case to arbitrary ipsets
+These scripts have run flawlessly for 2 years. The next steps will take advantage of this extended ufw-framework and generalise the blocklist case to arbitrary ipsets, for example, to block bogans or by geoblock
 - create an after.init.d directory, rename after.init to /etc/ufw/after.init.d/10-ufw-blocklist-ipsum
-- restore the original after.init, modify to test if after.init.d exists. If so, use run-parts(8)
+- copy after.init_run-parts to /etc/ufw/after.init
 - create /etc/ufw/after.init.d/40-ufw-blocklist-geo for blocking geographic subnets. Geo-based subnets can be found at: https://www.ip2location.com/free/visitor-blocker
-  - geo-based blocks could be useful for blocking botnets or "citizen activists"
+  - geo-based blocks are useful for blocking botnets or "citizen activists"
 - create /etc/ufw/after.init.d/50-ufw-blocklist-bogans for blocking bogan IP addresses. FireHOL includes fullbogons: https://iplists.firehol.org/
   - so does team Cymru. See fullbogons at: https://www.team-cymru.com/bogon-reference-http
-- create /etc/ufw/after.init.d/99-ufw-whitelist-mgt for lockout prevention in case our management IP address makes its way into the blocklists. This script must run last due to the insert rules.
+- need a way to whitelist an ip/cidr address
+- need to validate entries are valid ip/cidr addresses

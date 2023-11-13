@@ -121,16 +121,8 @@ stop)
 status)
     # display details of the ipset
     $IPSET_EXE list "$ipsetname" -t
-    printf "\n"
-
     # show iptables hit/byte counts
-    iptables -v -n -L ufw-blocklist-input | grep -E "Chain|DROP|pkts"
-    printf "\n"
-    iptables -v -n -L ufw-blocklist-forward | grep -E "Chain|DROP|pkts"
-    printf "\n"
-    iptables -v -n -L ufw-blocklist-output | grep -E "Chain|DROP|pkts"
-    printf "\n"
-
+    iptables -L -nvx | grep "$ipsetname" | grep 'match-set'
     # show the last 10 lines from the logs
     journalctl | grep -i blocklist | tail
     ;;

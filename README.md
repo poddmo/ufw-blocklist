@@ -37,9 +37,9 @@ curl -sS -f --compressed -o ipsum.4.txt 'https://raw.githubusercontent.com/stamp
 chmod 640 ipsum.4.txt
 sudo cp ipsum.4.txt /etc/ipsum.4.txt
 ```
-Restart ufw
+Start ufw-blocklist
 ```
-sudo ufw reload
+sudo /etc/ufw/after.init start
 ```
 
 # Usage
@@ -94,4 +94,3 @@ These scripts have run flawlessly for 2 years. The next steps will take advantag
 - create /etc/ufw/after.init.d/50-ufw-blocklist-bogans for blocking bogan IP addresses. FireHOL includes fullbogons: https://iplists.firehol.org/
   - so does team Cymru. See fullbogons at: https://www.team-cymru.com/bogon-reference-http
 - create /etc/ufw/after.init.d/99-ufw-whitelist-mgt for lockout prevention in case our management IP address makes its way into the blocklists. This script must run last due to the insert rules.
-- create pull request to ufw upstream for modified ufw-framework after.init

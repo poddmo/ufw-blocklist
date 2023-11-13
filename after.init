@@ -104,7 +104,7 @@ stop)
         iptables -F ufw-blocklist-input
         iptables -X ufw-blocklist-input
     fi
-    if chain_exists ufw-blocklist-input; then
+    if chain_exists ufw-blocklist-output; then
         iptables -D OUTPUT -m set --match-set $ipsetname dst -j ufw-blocklist-output || true
         iptables -F ufw-blocklist-output
         iptables -X ufw-blocklist-output

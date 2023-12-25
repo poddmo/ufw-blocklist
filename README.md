@@ -35,7 +35,7 @@ sudo chmod 750 /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
 Download an initial IP blocklist from [IPsum](https://github.com/stamparm/ipsum)
 ```
 curl -sS -f --compressed -o ipsum.4.txt 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt'
-chmod 640 ipsum.4.txt
+sudo chmod 640 ipsum.4.txt
 sudo cp ipsum.4.txt /etc/ipsum.4.txt
 ```
 Start ufw-blocklist

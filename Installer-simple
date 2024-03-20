@@ -1,0 +1,23 @@
+apt install ipset
+
+cp /etc/ufw/after.init /etc/ufw/after.init.orig
+
+git clone https://github.com/poddmo/ufw-blocklist.git
+
+cd ufw-blocklist
+
+cp after.init /etc/ufw/after.init
+
+cp ufw-blocklist-ipsum /etc/cron.daily/ufw-blocklist-ipsum
+
+chown root.root /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
+
+chmod 750 /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
+
+curl -sS -f --compressed -o ipsum.4.txt 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt'
+
+chmod 640 ipsum.4.txt
+
+cp ipsum.4.txt /etc/ipsum.4.txt
+
+/etc/ufw/after.init start

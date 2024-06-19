@@ -28,7 +28,7 @@ git clone https://github.com/poddmo/ufw-blocklist.git
 cd ufw-blocklist
 sudo cp after.init /etc/ufw/after.init
 sudo cp ufw-blocklist-ipsum /etc/cron.daily/ufw-blocklist-ipsum
-sudo chown root.root /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
+sudo chown root:root /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
 sudo chmod 750 /etc/ufw/after.init /etc/cron.daily/ufw-blocklist-ipsum
 ```
 

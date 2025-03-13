@@ -8,6 +8,7 @@ Add an IP blocklist to ufw, the uncomplicated Ubuntu firewall
 * ufw-blocklist is tested on:
   * Armbian 22.05.3 Focal (based on Ubuntu 20.04.4 LTS (Focal Fossa))
   * Ubuntu 22.04 LTS (Jammy Jellyfish)
+  * Ubuntu 24.04 LTS (Noble Numbat) - reported by @koenr
 
 **This blocklist is _very_ successful at dropping a lot of uninvited traffic.** It has been intentionally designed to be very light on resource requirements and zero maintenance as the initial target platform was a single-board computer operating as a home internet gateway. After the initial installation, there are no further writes to the storage system to preserve solid state storage. I would now highly recommend it for any Ubuntu host that has a public IP address or is otherwise exposed directly to the internet, for example, by port forwarding.
 

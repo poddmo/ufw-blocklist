@@ -15,8 +15,12 @@
 ipsumurl='https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt'
 # reject the new list if there are fewer than minlen number of ip addresses
 minlen=1000
-
+# If the new list has the same number of entries as the existing list,
+# generate a warning.  Anything but yes will disable the warning.
+warnonnochange=yes
+# ipset name. This must match the ipsetname created by after.init
 ipsetname=ufw-blocklist-ipsum
+
 ipset_exe=/usr/sbin/ipset
 logger="/usr/bin/logger -t ${ipsetname}"
 
@@ -50,6 +54,14 @@ scrublistlen="${#scrublist[@]}"
 if [ $scrublistlen -lt $minlen ]; then
 	$logger -s "$scrublistlen less than $minlen IPs. something must be wrong with $ipsumurl"
 	exit 1
+fi
+
+# If the list length does not change, generate a warning log. There may be
+# an issue with the list source. This warning can be used for monitoring systems.
+if [ $scrublistlen -eq $ipsetcount ]; then
+    if [ "$warnonnochange" = "yes" ]; then
+    	$logger "warning: list count for ${ipsetname} is the same as the new list count: ${ipsetcount}/${scrublistlen}"
+    fi
 fi
 
 ## create a temporary ipset

@@ -93,14 +93,14 @@ Sep 26 06:26:06 ubunturouter ufw-blocklist-ipsum[674158]: finished updating ufw-
 
 # Todo
 These scripts have run flawlessly for 4 years. The next steps are to generalise the blocklist case to arbitrary ipsets, for example, to block bogans or by geoblock
-- test and document use of after.init_run-parts
+- move config to /etc/defaults/ufw-blocklist
+  - refactor code: centralise config, rename/standardise variables
+- rework scripts to handle multiple blocklists: move after.init_run-parts into after.init, create lighter version of after.init to run from after.init.d
 - test and document geo-block example for blocking geographic subnets. Geo-based blocks are useful for blocking botnets or "citizen activists." Geo-based subnets can be found at:
   - https://www.ip2location.com/free/visitor-blocker
   - https://www.ipdeny.com/ipblocks/
 - test and document blocking bogan IP addresses. Bogon lists can be found at:
   - FireHOL includes fullbogons: https://iplists.firehol.org/
   - so does team Cymru. See fullbogons at: https://www.team-cymru.com/bogon-reference-http
-- develop a whitelist an ip/cidr address
+- develop a whitelist: firstly for anti-lockout protection when using bogon blocklistsa and then aim for a principle of least privilige position starting from deny all and only allowing from whitelists
 - develop test of entries as valid cidr addresses - replace existing ip address regex with cidr address regex
-- move config to /etc/defaults/ufw-blocklist
-  - refactor code: centralise config, rename/standardise variables

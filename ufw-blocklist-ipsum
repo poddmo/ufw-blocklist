@@ -18,6 +18,8 @@ minlen=1000
 # If the new list has the same number of entries as the existing list,
 # generate a warning.  Anything but yes will disable the warning.
 warnonnochange=yes
+# allow for some extra entries above the number of entries in the new blocklist
+maxelemheadroom=128
 # ipset name. This must match the ipsetname created by after.init
 ipsetname=ufw-blocklist-ipsum
 
@@ -66,7 +68,9 @@ fi
 
 ## create a temporary ipset
 tmpsetname="$(mktemp -u | cut -f2 -d'.')-tmp"
-$ipset_exe -q create "$tmpsetname" hash:net
+# calculate the maximum number of entries for the ipset
+maxelemcount=$(expr $scrublistlen + $maxelemheadroom)
+$ipset_exe -q create "$tmpsetname" hash:net maxelem "$maxelemcount"
 RET=$?
 if [ $RET -ne 0 ]; then
         $logger -s "error code $RET creating temporary ipset $tmpsetname"

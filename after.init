@@ -29,6 +29,8 @@ export ipsetname=ufw-blocklist-ipsum
 # curl -sS -f --compressed 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt' > /etc/ipsum.4.txt
 # ipset is updated daily by /etc/cron.daily/ufw-blocklist-ipsum
 export seedlist=/etc/ipsum.4.txt
+# allow for some extra entries above the seedlist line count
+maxelemheadroom=128
 
 export IPSET_EXE="/sbin/ipset"
 # check ipset exists and is executable
@@ -36,7 +38,6 @@ export IPSET_EXE="/sbin/ipset"
     echo "$IPSET_EXE is not executable"
     exit 1
     }
-
 
 # Function to check if a chain exists (chain_exists ufw_blocklist_input && action if true || action if false)
 chain_exists()
@@ -68,9 +69,12 @@ start)
     	echo "ufw after.init: $seedlist does not exist."
 	exit 1
     fi
+    # count the number of entries in the seed list
+    seedlistcount=$(cat "$seedlist" | wc -l)
+    maxelemcount=$(expr $seedlistcount + $maxelemheadroom)
 
     # create an empty ipset
-    $IPSET_EXE create  $ipsetname hash:net -exist
+    $IPSET_EXE create  $ipsetname hash:net -exist maxelem "$maxelemcount"
     $IPSET_EXE flush   $ipsetname
     
     ## Insert firewall rules to take precedence, removing them and adding them back if they already existed
@@ -106,7 +110,7 @@ start)
     iptables -A ufw-blocklist-forward -j DROP -m comment --comment "ufw-blocklist-forward"
     iptables -I FORWARD -m set --match-set $ipsetname dst -j ufw-blocklist-forward
 
-    # add members to the ipset
+    # add entries to the ipset
     # start this in a subshell and then disown the job so we return quickly.
     (
 	# only include ip addresses from the start of the line
@@ -117,6 +121,7 @@ start)
         	done
     ) < /dev/null &> /dev/null & disown -h
     ;;
+
 stop)
     # delete resources created above
     if chain_exists ufw-blocklist-input; then

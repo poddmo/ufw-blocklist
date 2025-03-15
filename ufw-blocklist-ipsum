@@ -5,10 +5,6 @@
 # addresses to the ufw-blocklist ipset
 # Use memory instead of file system to reduce writes to sd card
 
-# todo: - whitelist to exclude from adding to the set
-#	- test if list changes length.  Same length may indicate the source
-#	  has not been updated.
-
 # install this file into /etc/cron.daily/ufw-blocklist-ipsum
 
 ## URL must return a text file with one IP address per line

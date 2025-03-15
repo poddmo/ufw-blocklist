@@ -92,7 +92,7 @@ Sep 26 06:26:06 ubunturouter ufw-blocklist-ipsum[674158]: finished updating ufw-
 - INPUT hits are not logged. The status output above shows **76998 dropped INPUT packets** after the system has been up 9 days, 22:45 hours.
 
 # Todo
-These scripts have run flawlessly for 2 years. The next steps will take advantage of this extended ufw-framework and generalise the blocklist case to arbitrary ipsets, for example, to block bogans or by geoblock
+These scripts have run flawlessly for 4 years. The next steps are to generalise the blocklist case to arbitrary ipsets, for example, to block bogans or by geoblock
 - test and document use of after.init_run-parts
 - test and document geo-block example for blocking geographic subnets. Geo-based blocks are useful for blocking botnets or "citizen activists." Geo-based subnets can be found at:
   - https://www.ip2location.com/free/visitor-blocker
@@ -101,4 +101,6 @@ These scripts have run flawlessly for 2 years. The next steps will take advantag
   - FireHOL includes fullbogons: https://iplists.firehol.org/
   - so does team Cymru. See fullbogons at: https://www.team-cymru.com/bogon-reference-http
 - develop a whitelist an ip/cidr address
-- develop test of entries as valid ip/cidr addresses
+- develop test of entries as valid cidr addresses - replace existing ip address regex with cidr address regex
+- move config to /etc/defaults/ufw-blocklist
+  - refactor code: centralise config, rename/standardise variables

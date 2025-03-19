@@ -44,7 +44,7 @@ fi
 
 ## Read the list into an array, filtering for only ip addresses from the start of a line
 declare -a scrublist
-readarray -t scrublist < <(echo "$rawlist" | egrep -o "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")
+readarray -t scrublist < <(echo "$rawlist" | egrep -o "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(|/[0-9]{1,2})")
 
 ## Validate the list length
 scrublistlen="${#scrublist[@]}"

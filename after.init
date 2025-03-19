@@ -114,7 +114,7 @@ start)
     # start this in a subshell and then disown the job so we return quickly.
     (
 	# only include ip addresses from the start of the line
-	egrep -o "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" "$seedlist" |\
+	egrep -o "^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(|/[0-9]{1,2})" "$seedlist" |\
 	    while read ip
         	do
     			$IPSET_EXE add "$ipsetname" "$ip"
